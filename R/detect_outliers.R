@@ -37,7 +37,8 @@ detect_outliers <- function(
     .detect_with_iqr <- function(x){
         lt <- quantile(x, lower_quantile)
         ut <- quantile(x, upper_quantile)
-        return(!dplyr::between(x, lt, ut))
+        IQR <- ut - lt
+        return(!dplyr::between(x, (lt - 1.5 * IQR), (ut + 1.5 * IQR)))
     }
     
     if (is.vector(x)){

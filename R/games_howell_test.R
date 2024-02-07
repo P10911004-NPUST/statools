@@ -38,8 +38,8 @@ games_howell_test <- function(
     games_df$comparisons <- ""
     for (i in 1:nrow(group_max2min)){
         for (j in 1:nrow(games_df)){
-            mm <- group_max2min[i, c("key1", "key2")]
-            games_group <- games_df[j, c("group1", "group2")]
+            mm <- c(group_max2min[i, "key1"], group_max2min[i, "key2"])
+            games_group <- c(games_df[j, "group1"], games_df[j, "group2"])
             if (all(mm %in% games_group))
                 games_df[j, "comparisons"] <- paste(mm, collapse = " - ")
         }
@@ -60,7 +60,7 @@ games_howell_test <- function(
 
 
 
-games_howell <- function(grp, obs) {
+.games_howell <- function(grp, obs) {
     
     #Create combinations
     combs <- combn(unique(grp), 2)

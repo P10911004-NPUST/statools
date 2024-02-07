@@ -54,11 +54,11 @@ dunn_test <- function(
     }
     
     
-    dunn_df$comparisons <- ""
+    dunn_df$comparisons <- "ns"
     for (i in 1:nrow(group_max2min)){
         for (j in 1:nrow(dunn_df)){
-            mm <- group_max2min[i, c("key1", "key2")]
-            dunn_group <- dunn_df[j, c("group1", "group2")]
+            mm <- c(group_max2min[i, "key1"], group_max2min[i, "key2"])
+            dunn_group <- c(dunn_df[j, "group1"], dunn_df[j, "group2"])
             if (all(mm %in% dunn_group))
                 dunn_df[j, "comparisons"] <- paste(mm, collapse = " - ")
         }
