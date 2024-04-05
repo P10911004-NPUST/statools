@@ -3,7 +3,8 @@ if (!require(car)) install.packages("car")
 
 check_normality <- function(x){
     v <- na.omit(x)
-    normality <- shapiro.test(v)$p.value
+    if (sd(v) == 0) normality <- TRUE
+    if (sd(v) != 0) normality <- shapiro.test(v)$p.value
     return(normality)
 }
 
