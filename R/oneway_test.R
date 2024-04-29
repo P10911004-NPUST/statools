@@ -14,7 +14,7 @@ check_normality <- function(x){
     return(normality)
 }
 
-oneway_test <- function(data, formula){
+oneway_test <- function(data, formula, generate_boxplot = FALSE){
     stopifnot(is.data.frame(data))
     y <- as.character(formula)[2]
     x <- as.character(formula)[3]
