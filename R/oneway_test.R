@@ -39,6 +39,9 @@ oneway_test <- function(data, formula, generate_boxplot = FALSE){
             MAX = max(y),
             .by = x
         ) %>% 
+        mutate(
+            letter_y_pos = MAX + ((max(MAX) * 1.15 - max(MAX)) * 0.45)
+        ) %>% 
         dplyr::arrange(dplyr::desc(AVG))
     
     if (is_tied_data){
@@ -137,7 +140,7 @@ oneway_test <- function(data, formula, generate_boxplot = FALSE){
     
     descriptive_stats <- descriptive_stats %>% 
         dplyr::left_join(cld, by = "x") %>% 
-        dplyr::rename(indep_var = x)
+        dplyr::rename(group = x)
     
     # if (exists("cld")) descriptive_stats <- descriptive_stats %>% dplyr::left_join(cld, by = "x")
     
