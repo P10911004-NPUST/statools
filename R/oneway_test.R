@@ -158,7 +158,7 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
                 data = desc_stat,
                 mapping = aes(group, letter_y_pos, label = letter),
                 inherit.aes = FALSE,
-                size = 5
+                size = 7
             ) +
             theme(
                 text = element_text(family = "sans", face = "bold", size = 18),
