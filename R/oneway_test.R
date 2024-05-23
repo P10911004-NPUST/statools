@@ -14,7 +14,7 @@ check_normality <- function(x){
     return(normality)
 }
 
-oneway_test <- function(data, formula, generate_boxplot = FALSE){
+oneway_test <- function(data, formula, generate_boxplot = TRUE){
     stopifnot(is.data.frame(data))
     y <- as.character(formula)[2]
     x <- as.character(formula)[3]
@@ -40,7 +40,7 @@ oneway_test <- function(data, formula, generate_boxplot = FALSE){
             .by = x
         ) %>% 
         mutate(
-            letter_y_pos = MAX + ((max(MAX) * 1.15 - max(MAX)) * 0.45)
+            letter_y_pos = MAX + ((max(MAX) * 1.21 - max(MAX)) * 0.66)
         ) %>% 
         dplyr::arrange(dplyr::desc(AVG))
     
@@ -142,7 +142,31 @@ oneway_test <- function(data, formula, generate_boxplot = FALSE){
         dplyr::left_join(cld, by = "x") %>% 
         dplyr::rename(group = x)
     
-    # if (exists("cld")) descriptive_stats <- descriptive_stats %>% dplyr::left_join(cld, by = "x")
+    p1 <- NULL
+    if (generate_boxplot){
+        p1 <- df0
+        desc_stat <- descriptive_stats
+        
+        p1$x <- factor(p1$x, levels = sort(as.character(unique(p1$x))))
+        desc_stat$group <- factor(desc_stat$group, levels = unique(p1$x))
+        
+        p1 <- ggplot(p1, aes(x, y)) +
+            theme_bw() +
+            geom_point(position = position_jitter(width = 0.1)) +
+            geom_boxplot(outliers = FALSE, outlier.shape = NA, alpha = 0.2) +
+            geom_text(
+                data = desc_stat,
+                mapping = aes(group, letter_y_pos, label = letter),
+                inherit.aes = FALSE,
+                size = 5
+            ) +
+            theme(
+                text = element_text(family = "sans", face = "bold", size = 18),
+                axis.title.x.bottom = element_text(margin = ggplot2::margin(t = 9)),
+                axis.title.y.left = element_text(margin = ggplot2::margin(r = 9))
+            )
+    }
+    
     
     res <- list(
         normality = normality, 
@@ -150,7 +174,8 @@ oneway_test <- function(data, formula, generate_boxplot = FALSE){
         perform_test = perform_test,
         pre_hoc = pre_hoc, 
         post_hoc = post_hoc,
-        results = descriptive_stats
+        results = descriptive_stats,
+        boxplot = p1
     )
     
     return(res)
