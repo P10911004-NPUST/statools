@@ -61,7 +61,7 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
         descriptive_stats <- descriptive_stats %>% 
             dplyr::rename(indep_var = x)
         res <- list(
-            normality = NULL, 
+            normality = FALSE, 
             homoscedasticity = TRUE, 
             perform_test = NULL,
             pre_hoc = NULL, 
@@ -75,15 +75,16 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
     df0$x <- factor(df0$x, levels = descriptive_stats$x)
     
     # Check data normality and homoscedasticity
-    normality <- df0 %>% 
-        dplyr::group_by(x) %>% 
-        dplyr::summarise(p = check_normality(y))
+    # normality <- df0 %>% 
+    #     dplyr::group_by(x) %>% 
+    #     dplyr::summarise(p = check_normality(y))
+    normality <- is_normal(df0, y ~ x)
     homoscedasticity <- rstatix::levene_test(formula = y ~ x, data = df0)
-    is_normal <- all(normality$p > 0.05)
+    # is_normal <- all(normality$p > 0.05)
     var_equal <- homoscedasticity$p > 0.05
     
     # Parametric test
-    if (is_normal){
+    if (normality){
         perform_test <- ifelse(var_equal, "Fisher's ANOVA", "Welch's ANOVA")
         pre_hoc <- oneway.test(y ~ x, df0, var.equal = var_equal)
         pre_hoc_pass <- pre_hoc$p.value < 0.05
@@ -121,7 +122,7 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
     }  # <<<<< Parametric test
     
     # Non-parametric test
-    if (!is_normal){
+    if (!normality){
         perform_test <- "Kruskal-Wallis + Dunn's test"
         
         pre_hoc <- with(
@@ -181,12 +182,12 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
     
     
     res <- list(
+        perform_test = perform_test,
+        results = descriptive_stats,
         normality = normality, 
         homoscedasticity = homoscedasticity, 
-        perform_test = perform_test,
         pre_hoc = pre_hoc, 
         post_hoc = post_hoc,
-        results = descriptive_stats,
         boxplot = p1
     )
     
