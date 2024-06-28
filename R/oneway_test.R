@@ -26,7 +26,12 @@ is_normal <- function(data, formula, alpha = 0.05){
     return(res)
 }
 
-oneway_test <- function(data, formula, generate_boxplot = TRUE){
+oneway_test <- function(
+        data, 
+        formula, 
+        generate_boxplot = FALSE, 
+        only_tukey = FALSE
+){
     stopifnot(is.data.frame(data))
     y <- as.character(formula)[2]
     x <- as.character(formula)[3]
@@ -82,6 +87,8 @@ oneway_test <- function(data, formula, generate_boxplot = TRUE){
     homoscedasticity <- rstatix::levene_test(formula = y ~ x, data = df0)
     # is_normal <- all(normality$p > 0.05)
     var_equal <- homoscedasticity$p > 0.05
+    
+    if (only_tukey) normality <- var_equal <- TRUE
     
     # Parametric test
     if (normality){
