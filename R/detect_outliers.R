@@ -2,7 +2,7 @@ if (!require(dplyr)) install.packages("dplyr")
 
 detect_outliers <- function(
         x,
-        method = "sd", 
+        method = match.arg("sd", "iqr", "mean"), 
         n.sd = 3, 
         trim = 0.1,
         lower_quantile = 0.25,
