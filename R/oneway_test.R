@@ -7,7 +7,7 @@ suppressMessages({
     if (!require(rstatix)) install.packages("rstatix")
     if (!require(ARTool)) install.packages("ARTool")
     
-    options(contrasts = c("contr.sum", "contr.poly"))
+    # options(contrasts = c("contr.sum", "contr.poly"))
 })
 
 
@@ -44,7 +44,7 @@ oneway_test <- function(
         p_adjust_method = p.adjust.methods,
         generate_boxplot = FALSE, 
         
-        use_art = FALSE,  # (FALSE: Kruskal + Dunn) or (TRUE: ART + ART-C) deal with non-normal data
+        use_art = TRUE,  # (FALSE: Kruskal + Dunn) or (TRUE: ART + ART-C) deal with non-normal data
         only_tukey = FALSE
 ) {
     p_adjust_method <- match.arg(p_adjust_method)
@@ -74,9 +74,18 @@ oneway_test <- function(
             .by = x
         ) %>% 
         mutate(
-            letter_y_pos = MAX + ((max(MAX) * 1.21 - max(MAX)) * 0.66)
+            letter_pos = MAX + ((ceiling(max(MAX) * 1.15) - max(MAX)) * 0.43),
+            letter_y_pos = MAX + ((max(MAX) * 1.15 - max(MAX)) * 0.66)
         ) %>% 
         dplyr::arrange(dplyr::desc(AVG))
+    
+    # y_range <- c(
+    #     floor(min(descriptive_stats$MIN) * 0.9), 
+    #     ceiling(max(descriptive_stats$MAX) * 1.15)
+    # )
+    
+    # letter_nudge_y <- (ceiling(max(descriptive_stats$MAX) * 1.15) - max(descriptive_stats$MAX)) * 0.43
+    # descriptive_stats$letter_pos <- descriptive_stats$MAX + letter_nudge_y
     
     if (is_tied_data) {
         descriptive_stats$letter <- "a"
@@ -162,6 +171,16 @@ oneway_test <- function(
                 as.character() %>% 
                 combn(2)
             
+            # If the factor names start with digit, the art.con() will automatically insert `x`;
+            # so, the `x` in art_c$contrast will be removed to keep in line with the original name
+            art_contrast_name <- str_replace(art_c$contrast[1], "(.*) - (.*)", "\\1")
+            if (!art_contrast_name %in% comb_mat[1, ]){
+                art_c$contrast <- str_remove_all(art_c$contrast, "x")
+            }
+            
+            # comb1 <- apply(stats_res[1:2], 2, function(x) paste(x, collapse = " - "))
+            # comb2 <- apply(stats_res[2:1], 2, function(x) paste(x, collapse = " - "))
+            
             lst0 <- list()
             for (i in 1:ncol(comb_mat)) {
                 comb_1 <- paste(comb_mat[1, i], comb_mat[2, i], sep = " - ")
@@ -217,6 +236,7 @@ oneway_test <- function(
         dplyr::left_join(cld, by = "x") %>% 
         dplyr::rename(group = x)
     
+    ## Boxplot ====
     p1 <- NULL
     if (generate_boxplot) {
         p1 <- df0
@@ -225,20 +245,22 @@ oneway_test <- function(
         p1$x <- factor(p1$x, levels = sort(as.character(unique(p1$x))))
         desc_stat$group <- factor(desc_stat$group, levels = unique(p1$x))
         
-        p1 <- ggplot(p1, aes(x, y)) +
+        p1 <- ggplot(p1, aes(x, y, color = x)) +
             theme_bw() +
-            geom_point(position = position_jitter(width = 0.1)) +
-            geom_boxplot(outliers = FALSE, outlier.shape = NA, alpha = 0.2) +
+            geom_point(position = position_jitter(width = 0.1), alpha = 0.7) +
+            geom_boxplot(outliers = FALSE, outlier.shape = NA, fill = NA, alpha = 0.8) +
+            stat_summary(geom = "point", fun = "mean", color = "black", shape = 15, alpha = 0.7) +
             geom_text(
                 data = desc_stat,
-                mapping = aes(group, letter_y_pos, label = letter),
+                mapping = aes(group, letter_pos, label = letter),
                 inherit.aes = FALSE,
                 size = 6
             ) +
             theme(
                 text = element_text(family = "sans", face = "bold", size = 18),
                 axis.title.x.bottom = element_text(margin = ggplot2::margin(t = 9)),
-                axis.title.y.left = element_text(margin = ggplot2::margin(r = 9))
+                axis.title.y.left = element_text(margin = ggplot2::margin(r = 9)),
+                legend.position = "none"
             )
     }
     
