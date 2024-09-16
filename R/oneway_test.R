@@ -38,15 +38,62 @@ is_normal <- function(data, formula, alpha = 0.05) {
     return(res)
 }
 
+
 oneway_test <- function(
         data, 
         formula, 
         p_adjust_method = p.adjust.methods,
         generate_boxplot = FALSE, 
-        
         use_art = TRUE,  # (FALSE: Kruskal + Dunn) or (TRUE: ART + ART-C) deal with non-normal data
         only_tukey = FALSE
 ) {
+    
+    .generate_boxplot <- function(df0, descriptive_stat){
+        p1 <- df0
+        desc_stat <- descriptive_stats
+        p1$x <- factor(p1$x, levels = sort(as.character(unique(p1$x))))
+        desc_stat$group <- factor(desc_stat$group, levels = unique(p1$x))
+        
+        p1 <- ggplot(p1, aes(x, y, color = x)) +
+            theme_bw() +
+            geom_point(
+                size = 3, 
+                position = position_jitter(width = 0.1), 
+                alpha = 0.5,
+                show.legend = FALSE
+            ) +
+            geom_boxplot(
+                outliers = FALSE,
+                outlier.colour = "transparent",
+                outlier.size = 0,
+                outlier.shape = NA,
+                fill = NA,
+                size = 1, 
+                linewidth = 0.5
+            ) +
+            stat_summary(
+                geom = "point", 
+                fun = "mean", 
+                size = 3, 
+                color = "black", 
+                shape = 17, 
+                alpha = 0.7
+            ) +
+            geom_text(
+                data = desc_stat,
+                mapping = aes(group, letter_pos, label = letter),
+                inherit.aes = FALSE,
+                size = 8
+            ) +
+            theme(
+                text = element_text(family = "sans", face = "bold", size = 21),
+                axis.title.x.bottom = element_text(margin = ggplot2::margin(t = 9)),
+                axis.title.y.left = element_text(margin = ggplot2::margin(r = 9)),
+                legend.position = "none"
+            )
+        return(p1)
+    }
+    
     p_adjust_method <- match.arg(p_adjust_method)
     stopifnot(is.data.frame(data))
     y <- as.character(formula)[2]
@@ -57,8 +104,6 @@ oneway_test <- function(
         x = data[, x, drop = TRUE]
     ) %>% 
         tidyr::drop_na()
-    
-    is_tied_data <- sd(df0$y) == 0
     
     ## Descriptive stats ====
     descriptive_stats <- df0 %>% 
@@ -79,28 +124,34 @@ oneway_test <- function(
         ) %>% 
         dplyr::arrange(dplyr::desc(AVG))
     
-    # y_range <- c(
-    #     floor(min(descriptive_stats$MIN) * 0.9), 
-    #     ceiling(max(descriptive_stats$MAX) * 1.15)
-    # )
-    
     # letter_nudge_y <- (ceiling(max(descriptive_stats$MAX) * 1.15) - max(descriptive_stats$MAX)) * 0.43
     # descriptive_stats$letter_pos <- descriptive_stats$MAX + letter_nudge_y
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Tied data ====
+    is_tied_data <- sd(df0$y) == 0
     
     if (is_tied_data) {
         descriptive_stats$letter <- "a"
         descriptive_stats <- descriptive_stats %>% 
-            dplyr::rename(indep_var = x)
+            dplyr::rename(group = x)
+        
         res <- list(
             normality = FALSE, 
             homoscedasticity = TRUE, 
             perform_test = NULL,
             pre_hoc = NULL, 
             post_hoc = NULL,
-            results = descriptive_stats
+            result = descriptive_stats
         )
+        
+        if (generate_boxplot) {
+            res[["boxplot"]] <- .generate_boxplot(df0, descriptive_stats)
+        }
+        
         return(res)
     }
+    #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     # Factor reorder with descending average value
     df0$x <- factor(df0$x, levels = descriptive_stats$x)
@@ -236,35 +287,6 @@ oneway_test <- function(
         dplyr::left_join(cld, by = "x") %>% 
         dplyr::rename(group = x)
     
-    ## Boxplot ====
-    p1 <- NULL
-    if (generate_boxplot) {
-        p1 <- df0
-        desc_stat <- descriptive_stats
-        
-        p1$x <- factor(p1$x, levels = sort(as.character(unique(p1$x))))
-        desc_stat$group <- factor(desc_stat$group, levels = unique(p1$x))
-        
-        p1 <- ggplot(p1, aes(x, y, color = x)) +
-            theme_bw() +
-            geom_point(position = position_jitter(width = 0.1), alpha = 0.7) +
-            geom_boxplot(outliers = FALSE, outlier.shape = NA, fill = NA, alpha = 0.8) +
-            stat_summary(geom = "point", fun = "mean", color = "black", shape = 15, alpha = 0.7) +
-            geom_text(
-                data = desc_stat,
-                mapping = aes(group, letter_pos, label = letter),
-                inherit.aes = FALSE,
-                size = 6
-            ) +
-            theme(
-                text = element_text(family = "sans", face = "bold", size = 18),
-                axis.title.x.bottom = element_text(margin = ggplot2::margin(t = 9)),
-                axis.title.y.left = element_text(margin = ggplot2::margin(r = 9)),
-                legend.position = "none"
-            )
-    }
-    
-    
     res <- list(
         perform_test = perform_test,
         result = descriptive_stats,
@@ -272,8 +294,13 @@ oneway_test <- function(
         homoscedasticity = homoscedasticity, 
         pre_hoc = pre_hoc, 
         post_hoc = post_hoc,
-        boxplot = p1
+        boxplot = NULL
     )
+    
+    ## Boxplot ====
+    if (generate_boxplot) {
+        res[["boxplot"]] <- .generate_boxplot(df0, descriptive_stats)
+    }
     
     return(res)
 }
