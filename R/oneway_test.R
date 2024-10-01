@@ -1,5 +1,6 @@
 suppressMessages({
     source("./utils.R")
+    source("./tukey_hsd.R")
     if (!require(rcompanion)) install.packages("rcompanion")
     if (!require(agricolae)) install.packages("agricolae")
     if (!require(rstatix)) install.packages("rstatix")
@@ -11,9 +12,9 @@ oneway_test <- function(
         data, 
         formula, 
         p_adjust_method = p.adjust.methods,
-        generate_boxplot = FALSE, 
         use_art = TRUE,  # (FALSE: Kruskal + Dunn) or (TRUE: ART + ART-C) deal with non-normal data
-        only_tukey = FALSE
+        only_tukey = FALSE,
+        generate_boxplot = FALSE
 ) {
     p_adjust_method <- match.arg(p_adjust_method)
     stopifnot(is.data.frame(data))
@@ -65,8 +66,19 @@ oneway_test <- function(
             result = descriptive_stats
         )
         
+        # if (generate_boxplot) {
+        #     res[["boxplot"]] <- .generate_boxplot(df0, descriptive_stats)
+        # }
         if (generate_boxplot) {
-            res[["boxplot"]] <- .generate_boxplot(df0, descriptive_stats)
+            res[["boxplot"]] <- show_boxplot(
+                data = df0, 
+                formula = y ~ x, 
+                cld = setNames(res$result$letter, res$result$group)
+            ) +
+                labs(
+                    x = sym(x_name),
+                    y = sym(y_name)
+                )
         }
         
         return(res)
@@ -114,11 +126,16 @@ oneway_test <- function(
             ) %>% 
                 dplyr::mutate(comparisons = paste(group1, group2, sep = " - "))
             
-            # cld <- rcompanion::cldList(p.adj ~ comparisons, post_hoc, remove.zero = FALSE)
-            # cld <- data.frame(
-            #     x = cld[, "Group"],
-            #     letter = cld[, "Letter", drop = TRUE]
-            # )
+            cld <- rcompanion::cldList(
+                formula = p.adj ~ comparisons, 
+                data = post_hoc, 
+                remove.zero = FALSE
+            )
+            
+            cld <- data.frame(
+                x = cld[, "Group"],
+                letter = cld[, "Letter", drop = TRUE]
+            )
         }
     }  
     #< Parametric test
@@ -185,33 +202,35 @@ oneway_test <- function(
                 formula = y ~ x,
                 p.adjust.method = p_adjust_method
             ) %>% 
-                dplyr::mutate(comparisons = paste(group1, group2, sep = "-"))  
+                dplyr::mutate(
+                    comparisons = paste(group1, group2, sep = "-")
+                )  
         }
         
-        # cld <- rcompanion::cldList(
-        #     formula = p.adj ~ comparisons, 
-        #     data = post_hoc, 
-        #     remove.zero = FALSE
-        # )
-        # 
-        # cld <- data.frame(
-        #     x = cld[, "Group"],
-        #     letter = cld[, "Letter", drop = TRUE]
-        # )
+        cld <- rcompanion::cldList(
+            formula = p.adj ~ comparisons,
+            data = post_hoc,
+            remove.zero = FALSE
+        )
+        
+        cld <- data.frame(
+            x = cld[, "Group"],
+            letter = cld[, "Letter", drop = TRUE]
+        )
     }
     #<<<<< Non-parametric test
     
     # Compact letter display ====
-    cld <- rcompanion::cldList(
-        formula = p.adj ~ comparisons, 
-        data = post_hoc, 
-        remove.zero = FALSE
-    )
-    
-    cld <- data.frame(
-        x = cld[, "Group"],
-        letter = cld[, "Letter", drop = TRUE]
-    )
+    # cld <- rcompanion::cldList(
+    #     formula = p.adj ~ comparisons, 
+    #     data = post_hoc, 
+    #     remove.zero = FALSE
+    # )
+    # 
+    # cld <- data.frame(
+    #     x = cld[, "Group"],
+    #     letter = cld[, "Letter", drop = TRUE]
+    # )
     
     if (!pre_hoc_pass) cld$letter <- "a"
     
@@ -227,16 +246,16 @@ oneway_test <- function(
         homoscedasticity = homoscedasticity, 
         pre_hoc = pre_hoc, 
         post_hoc = post_hoc,
-        boxplot = NULL
+        boxplot = NULL,
+        cld = cld
     )
     
     ## Generate boxplot ====
     if (generate_boxplot) {
-        # res[["boxplot"]] <- .generate_boxplot(df0, descriptive_stats)
         res[["boxplot"]] <- show_boxplot(
             data = df0, 
             formula = y ~ x, 
-            cld = setNames(res$result$letter, res$result$group),
+            cld = setNames(res$result$letter, res$result$group)
         ) +
             labs(
                 x = sym(x_name),

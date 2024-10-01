@@ -11,6 +11,25 @@ suppressMessages({
     if (!require(ARTool)) install.packages("ARTool")
 })
 
+p25 <- function(x){
+    quantile(x, 0.25)
+}
+
+p75 <- function(x){
+    quantile(x, 0.75)
+}
+
+is_unbalance <- function(data, formula){
+    x_name <- as.character(formula)[3]
+    y_name <- as.character(formula)[2]
+    df0 <- data.frame(
+        x = data[, x_name, drop = TRUE],
+        y = data[, y_name, drop = TRUE]
+    )
+    n <- unname(with(df0, tapply(y, x, "length")))
+    bool_out <- length(unique(n)) > 1
+    return(bool_out)
+}
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #> Check data normality
@@ -58,8 +77,9 @@ estimate_letter_pos <- function(x){
 #> The cld should be a named vector, for example, c(level_01 = "a", level_02 = "b")
 show_boxplot <- function(
         data, 
-        formula, 
+        formula,
         cld = NULL, 
+        color = NULL,
         point_size = 3,
         triangle_size = 3,
         letter_size = 8,
@@ -79,7 +99,9 @@ show_boxplot <- function(
     if (factor_missing) warning("Factor not match")
     df0$x <- factor(df0$x, levels = x_label_order)
     
-    p1 <- ggplot(df0, aes(x, y, color = x)) +
+    if (!is.null(color)) df0$color <- data[[color]]
+    
+    p1 <- ggplot(df0, aes(x, y, color = color)) +
         theme_bw() +
         labs(
             x = sym(x_name),
@@ -116,20 +138,26 @@ show_boxplot <- function(
         )
     
     if (!is.null(cld)){
+        cld <- data.frame(
+            x = names(cld),
+            letter = unname(cld)
+        )
+        
         letter_pos <- df0 %>% 
             summarise(
                 letter_pos = estimate_letter_pos(y),
                 .by = x
-            ) 
+            ) %>% 
+            left_join(cld, by = "x")
         
-        letter_pos$letter <- unname(cld[match(names(cld), letter_pos[["x"]])])
+        # letter_pos$letter <- unname(cld[match(names(cld), letter_pos[["x"]])])
         
         p1 <- p1  +
             geom_text(
                 data = letter_pos,
                 mapping = aes(x, letter_pos + letter_pos_adjust, label = letter),
                 inherit.aes = FALSE,
-                size = 8
+                size = letter_size
             )
     }
     
