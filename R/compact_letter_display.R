@@ -1,11 +1,8 @@
-library(tidyverse)
-source("./tukey_hsd.R")
-
 # Compact letter display (CLD)
 # Piepho, H.-P. (2004). An Algorithm for a Letter-Based Representation of All-Pairwise Comparisons. 
 # Journal of Computational and Graphical Statistics 13, 456–466. https://doi.org/10.1198/1061860043515.
 
-cld <- compact_letter_display <- function(
+compact_letter_display <- function(
         groups, 
         means, 
         comparisons, 
@@ -93,7 +90,7 @@ cld <- compact_letter_display <- function(
 }
 
 
-
+cld <- compact_letter_display
 
 
 
