@@ -43,6 +43,11 @@ tukey_hsd <- function(
     )
     groups_pair <- groups_pair[upper.tri(groups_pair)]
     
+    tmp_df <- strsplit(groups_pair, comparison_symbol, fixed = TRUE)
+    tmp_df <- do.call(rbind.data.frame, tmp_df)
+    x1 <- tmp_df[, 1, drop = TRUE]
+    x2 <- tmp_df[, 2, drop = TRUE]
+    
     groups_diff <- outer(
         X = desc_mat[, "mean"], 
         Y = desc_mat[, "mean"], 
@@ -60,7 +65,7 @@ tukey_hsd <- function(
     # Critical value of studentized range
     q_crit <- qtukey(1 - alpha, nrow(desc_mat), DFerror)
     
-    # Minimum significant difference
+    # # Minimum significant difference
     # tmp_n <- outer(
     #     X = 1 / groups_n,
     #     Y = 1 / groups_n,
@@ -74,18 +79,14 @@ tukey_hsd <- function(
     
     res <- data.frame(
         comparisons = groups_pair,
+        x1 = x1,
+        x2 = x2,
         diff = groups_diff,
         lwr = diff_lwr,
         upr = diff_upr,
         pval = groups_p,
         padj = p.adjust(groups_p, p_adjust_method)
     )
-    
-    # cat("\nFactors:", rownames(desc_mat), "\n")
-    # cat("\nDFerror:", DFerror, "\n")
-    # cat("\nMSE:", MSE, "\n")
-    # cat("\nCritical Value of Studentized Range:", q_crit, "\n")
-    # cat("\nMinimun Significant Difference:", HSD, "\n\n")
     
     return(res)
 }
