@@ -35,12 +35,14 @@ compact_letter_display <- function(
         pval_mat[x1[i], x2[i]] <- pval[i]
     }
     
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Insertion step ====
     # Non-significant comparisons were marked as TRUE,
     # So later, non-significant comparing-pairs will be inserted with same letters.
     bool_mat <- t(pval_mat >= pval_threshold)
     bool_mat[is.na(bool_mat)] <- TRUE
     
-    # Absorption preparation
+    # Absorption index ====
     # NOT performed yet, just memorizing which columns have to be discarded after the insertion step
     is_redundant <- c()
     for (n in 1:(ncol(bool_mat))){
@@ -55,38 +57,30 @@ compact_letter_display <- function(
     }
     is_redundant[1] <- FALSE
     
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Insertion step ====
-    # Insert 1 and 0 first, not letters, because its quite un-handy to rearrange the letter
-    # after removing the redundant columns
-    tmp_mat <- bool_mat
-    for (i in 1:ncol(bool_mat)){
-        tmp_mat[, i] <- ifelse(bool_mat[, i], 1, 0)
-        if (i > 1) tmp_mat[(1:i-1), i] <- 0
-    }
-    #<<<<< End of insertion
+    # Remove duplicate comparison-pairs
+    bool_mat[upper.tri(bool_mat)] <- FALSE
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Absorption step ====
-    # Now we perform absoption here, according the previous column index
-    tmp_mat <- tmp_mat[, !is_redundant]
-    #<<<<< End of absorption
+    bool_mat <- bool_mat[, !is_redundant]
     
-    # After absorption, substitute the 1 to `letter_symbols` according to the columns number
-    letter_mat <- tmp_mat
-    for (i in 1:ncol(tmp_mat)){
-        substitute_column <- tmp_mat[, i, drop = TRUE]
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Substitute with letters ====
+    letter_mat <- bool_mat
+    for (i in 1:ncol(bool_mat)){
+        insert_letter <- bool_mat[, i, drop = TRUE]
         letter_mat[, i] <- ifelse(
-            test = (substitute_column == 1), 
+            test = insert_letter, 
             yes = letter_symbols[i], 
             no = ""
         )
     }
     
-    # The matrix will be reduced to a named-vector after row-wise collapsing the letter-columns
-    letter_mat <- apply(letter_mat, 1, function(x) paste(x, collapse = ""))
+    # The matrix will be reduced to a named-vector 
+    # after row-wise collapsing the letter-columns
+    res <- apply(letter_mat, 1, function(x) paste(x, collapse = ""))
     
-    return(letter_mat)
+    return(res)
 }
 
 
