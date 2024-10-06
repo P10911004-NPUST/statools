@@ -11,13 +11,10 @@ compact_letter_display <- function(
         pval,
         alpha = 0.05,
         comparison_symbol = " |vs| ",
-        letter_symbols = letters,
+        display_symbols = base::letters,
         descending = TRUE
 ){
     if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
-    # comparisons <- gsub(pattern = comparison_symbol, replacement = " ", x = comparisons)
-    # Separate the comparisons pairs, 
-    # exp. c("a |vs| b", "a |vs| c", "c |vs| d") => c("a", "a", "c") and c("b", "c", "d")
     
     if (any(grepl(comparison_symbol, groups))) 
         stop("Comparison symbol should not exists in group names")
@@ -27,9 +24,12 @@ compact_letter_display <- function(
     x1 <- comparisons[, 1, drop = TRUE]
     x2 <- comparisons[, 2, drop = TRUE]
     
-    # Generate a NULL matrix, 
-    # the row and col names are sorted by the mean-values of the groups
-    # the NULL matrix is filled with NAs
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Generate a NULL matrix ====
+    ## the row and col names are sorted by the mean-values of the groups
+    ## the NULL matrix is filled with NAs
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     sorted_groups <- names(sort(setNames(means, groups), decreasing = descending))
     null_mat <- matrix(
         nrow = length(sorted_groups), 
@@ -37,32 +37,29 @@ compact_letter_display <- function(
         dimnames = list(sorted_groups, sorted_groups)
     )
     
-    # Fill in p-value 
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Fill in p-values ====
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     pval_mat <- null_mat
     for (i in seq_along(x1)){
         pval_mat[x1[i], x2[i]] <- pval[i]
     }
-    # group_mat <- combn(sorted_groups, 2)
-    # for (i in 1:ncol(group_mat)){
-    #     x1_name <- group_mat[1, i]
-    #     x2_name <- group_mat[2, i]
-    # 
-    #     x1_exists_in_comparisons <- grepl(x1_name, comparisons)
-    #     x2_exists_in_comparisons <- grepl(x2_name, comparisons)
-    #     ind <- which( x1_exists_in_comparisons & x2_exists_in_comparisons )
-    # 
-    #     pval_mat[x1_name, x2_name] <- unname(pval[ind])
-    # }
     
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Insertion step ====
-    # Non-significant comparisons were marked as TRUE,
-    # So later, non-significant comparing-pairs will be inserted with same letters.
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Insertion step ====
+    ## Non-significant comparisons were marked as TRUE,
+    ## So later, non-significant comparing-pairs will be inserted with same letters.
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     bool_mat <- t(pval_mat >= alpha)
     bool_mat[is.na(bool_mat)] <- TRUE
     
-    # Absorption index ====
-    # NOT performed yet, just memorizing which columns have to be discarded after the insertion step
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Absorption preparation ====
+    ## NOT performed yet, just memorizing which columns have to be discarded
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     is_redundant <- c()
     for (n in 1:(ncol(bool_mat))){
         `mat_n` <- bool_mat[, n]
@@ -76,27 +73,37 @@ compact_letter_display <- function(
     }
     is_redundant[1] <- FALSE
     
-    # Remove duplicate comparison-pairs
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Remove duplicate comparison-pairs
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     bool_mat[upper.tri(bool_mat)] <- FALSE
     
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Absorption step ====
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Absorption step ====
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     bool_mat <- bool_mat[, !is_redundant]
     
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Substitute with letters ====
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Substitute with letters ====
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     letter_mat <- bool_mat
     for (i in 1:ncol(bool_mat)){
         insert_letter <- bool_mat[, i, drop = TRUE]
         letter_mat[, i] <- ifelse(
             test = insert_letter, 
-            yes = letter_symbols[i], 
+            yes = display_symbols[i], 
             no = ""
         )
     }
     
-    # The matrix will be reduced to a named-vector 
-    # after row-wise collapsing the letter-columns
+    
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ## Output
+    ## The matrix will be reduced to a named-vector 
+    ## after row-wise collapsing the letter-columns
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     res <- apply(letter_mat, 1, function(x) paste(x, collapse = ""))
     res <- res[groups]
     
