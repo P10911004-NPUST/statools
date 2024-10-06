@@ -13,13 +13,14 @@ outer2 <- function(x, FUN = "paste"){
 }
 
 
-games_howell <- function(
+Games_Howell_test <- function(
         data, 
         formula, 
         alpha = 0.05, 
         p_adjust_method = "none",
-        ordered_descending = NULL
+        descending = TRUE
 ){
+    if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
     p_adjust_method <- match.arg(p_adjust_method, p.adjust.methods)
     
     y_name <- as.character(formula)[2]
@@ -41,24 +42,28 @@ games_howell <- function(
         )
     )
     
-    desc_mat <- desc_mat[order(desc_mat[, "mean"], decreasing = TRUE), ]
+    desc_mat <- desc_mat[order(desc_mat[, "mean"], decreasing = descending), ]
     
     group_means <- desc_mat[, "mean"]
     group_sizes <- desc_mat[, "length"]
     group_names <- names(group_means)
     group_vars <- desc_mat[, "sd"] ^ 2
     
-    if (length(unique(group_sizes)) == 1) 
-        warning("Balanced data, please consider Tukey-HSD test.")
+    if (length(unique(group_vars)) == 1){
+        if (length(unique(group_sizes)) == 1) 
+            warning("Balanced data, please consider Tukey-HSD test.")
+        if (length(unique(group_sizes)) > 1) 
+            warning("Balanced data, please consider Tukey-Kramer test.")
+    }
     
     # ANOVA model ====
-    aov_mod <- aov(formula = y ~ x, data = df0)
+    aov_mod <- stats::aov(formula = y ~ x, data = df0)
     
     # Degree of freedom (within group) ====
-    DFerror <- df.residual(aov_mod)
+    DFerror <- stats::df.residual(aov_mod)
     
     # Mean square error ====
-    MSE <- sum(residuals(aov_mod) ^ 2) / DFerror
+    MSE <- sum(stats::residuals(aov_mod) ^ 2) / DFerror
     
     # Labels comparison ====
     group_comparisons <- outer2(group_names, function(x1, x2) paste(x1, x2, sep = " |vs| "))
@@ -94,7 +99,7 @@ games_howell <- function(
     group_qvals <- abs(group_diff / group_SE)
     
     # p-values ====
-    group_pvals <- ptukey(
+    group_pvals <- stats::ptukey(
         q = group_qvals, 
         nmeans = length(group_names),
         df = group_pooled_df,
@@ -102,7 +107,7 @@ games_howell <- function(
     )
     
     # Critical q-values ====
-    q_crit <- qtukey(
+    q_crit <- stats::qtukey(
         p = alpha,
         nmeans = length(group_names),
         df = group_pooled_df,
@@ -120,7 +125,8 @@ games_howell <- function(
         means = group_means,
         comparisons = group_comparisons,
         pval = group_pvals,
-        alpha = alpha
+        alpha = alpha,
+        descending = descending
     )
     
     # Output ====
@@ -144,7 +150,7 @@ games_howell <- function(
         qval = group_qvals,
         qcrit = q_crit,
         pval = group_pvals,
-        padj = p.adjust(group_pvals, method = p_adjust_method)
+        padj = stats::p.adjust(group_pvals, method = p_adjust_method)
     )
     
     
@@ -171,7 +177,7 @@ if (FALSE){
     
     asd <- rstatix::games_howell_test(df0, y ~ x)
     asd
-    asd <- games_howell(df0, y ~ x)
+    asd <- Games_Howell_test(df0, y ~ x, descending = FALSE)
     asd
 }
 

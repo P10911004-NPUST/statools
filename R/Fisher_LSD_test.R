@@ -17,8 +17,10 @@ Fisher_LSD_test <- function(
         data, 
         formula, 
         alpha = 0.05, 
-        p_adjust_method = "none"
+        p_adjust_method = "none", 
+        descending = TRUE
 ){
+    if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
     p_adjust_method <- match.arg(p_adjust_method, p.adjust.methods)
     
     y_name <- as.character(formula)[2]
@@ -40,7 +42,7 @@ Fisher_LSD_test <- function(
         )
     )
     
-    desc_mat <- desc_mat[order(desc_mat[, "mean"], decreasing = TRUE), ]
+    desc_mat <- desc_mat[order(desc_mat[, "mean"], decreasing = descending), ]
     
     group_means <- desc_mat[, "mean"]
     group_sizes <- desc_mat[, "length"]
@@ -77,7 +79,6 @@ Fisher_LSD_test <- function(
         group_SE <- sqrt( MSE / mean(group_sizes) )
     }
     
-    
     # t-values (Studendized range) ====
     group_tvals <- abs(group_diff / group_SE)
     
@@ -108,7 +109,8 @@ Fisher_LSD_test <- function(
         means = group_means,
         comparisons = group_comparisons,
         pval = group_pvals,
-        alpha = alpha
+        alpha = alpha,
+        descending = descending
     )
     
     # Output ====
@@ -161,12 +163,8 @@ if (FALSE){
     aov_mod <- aov(y ~ x, df0)
     
     ag <- agricolae::LSD.test(aov_mod, "x")
-    
-    asd <- Fisher_LSD_test(df0, y ~ x)
-    
-    ag$statistics
-    ag$parameters
     ag$means
+    asd <- Fisher_LSD_test(df0, y ~ x, descending = FALSE)
     asd
 }
 

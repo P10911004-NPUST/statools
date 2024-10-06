@@ -17,7 +17,7 @@ Tukey_HSD_test <- function(
         data, 
         formula, 
         alpha = 0.05, 
-        p_adjust_method = "none",
+        p_adjust_method = "none", 
         descending = TRUE
 ){
     if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
@@ -152,7 +152,7 @@ if (FALSE){
     
     TukeyHSD(x = aov_mod, ordered = TRUE)
     
-    asd <- Tukey_HSD_test(df0, y ~ x, descending = TRUE)
+    asd <- Tukey_HSD_test(df0, y ~ x, descending = FALSE)
     asd
 }
 

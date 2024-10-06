@@ -15,13 +15,17 @@ compact_letter_display <- function(
         descending = TRUE
 ){
     if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
-    comparisons <- gsub(pattern = comparison_symbol, replacement = " ", x = comparisons)
+    # comparisons <- gsub(pattern = comparison_symbol, replacement = " ", x = comparisons)
     # Separate the comparisons pairs, 
     # exp. c("a |vs| b", "a |vs| c", "c |vs| d") => c("a", "a", "c") and c("b", "c", "d")
-    # comparisons <- strsplit(comparisons, comparison_symbol, fixed = TRUE)
-    # comparisons <- do.call(rbind.data.frame, comparisons)
-    # x1 <- comparisons[, 1, drop = TRUE]
-    # x2 <- comparisons[, 2, drop = TRUE]
+    
+    if (any(grepl(comparison_symbol, groups))) 
+        stop("Comparison symbol should not exists in group names")
+    
+    comparisons <- strsplit(comparisons, comparison_symbol, fixed = TRUE)
+    comparisons <- do.call(rbind.data.frame, comparisons)
+    x1 <- comparisons[, 1, drop = TRUE]
+    x2 <- comparisons[, 2, drop = TRUE]
     
     # Generate a NULL matrix, 
     # the row and col names are sorted by the mean-values of the groups
@@ -35,20 +39,20 @@ compact_letter_display <- function(
     
     # Fill in p-value 
     pval_mat <- null_mat
-    # for (i in seq_along(x1)){
-    #     pval_mat[x1[i], x2[i]] <- pval[i]
-    # }
-    group_mat <- combn(sorted_groups, 2)
-    for (i in 1:ncol(group_mat)){
-        x1_name <- group_mat[1, i]
-        x2_name <- group_mat[2, i]
-
-        x1_exists_in_comparisons <- grepl(x1_name, comparisons)
-        x2_exists_in_comparisons <- grepl(x2_name, comparisons)
-        ind <- which( x1_exists_in_comparisons & x2_exists_in_comparisons )
-
-        pval_mat[x1_name, x2_name] <- unname(pval[ind])
+    for (i in seq_along(x1)){
+        pval_mat[x1[i], x2[i]] <- pval[i]
     }
+    # group_mat <- combn(sorted_groups, 2)
+    # for (i in 1:ncol(group_mat)){
+    #     x1_name <- group_mat[1, i]
+    #     x2_name <- group_mat[2, i]
+    # 
+    #     x1_exists_in_comparisons <- grepl(x1_name, comparisons)
+    #     x2_exists_in_comparisons <- grepl(x2_name, comparisons)
+    #     ind <- which( x1_exists_in_comparisons & x2_exists_in_comparisons )
+    # 
+    #     pval_mat[x1_name, x2_name] <- unname(pval[ind])
+    # }
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Insertion step ====
