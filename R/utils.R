@@ -19,16 +19,28 @@ p75 <- function(x){
     quantile(x, 0.75)
 }
 
+is_balance <- function(data, formula){
+    x_name <- as.character(formula)[3]
+    y_name <- as.character(formula)[2]
+    df0 <- data.frame(
+        x = data[[x_name]],
+        y = data[[y_name]]
+    )
+    n <- unname(with(df0, tapply(y, x, "length")))
+    res <- length(unique(n)) == 1
+    return(res)
+}
+
 is_unbalance <- function(data, formula){
     x_name <- as.character(formula)[3]
     y_name <- as.character(formula)[2]
     df0 <- data.frame(
-        x = data[, x_name, drop = TRUE],
-        y = data[, y_name, drop = TRUE]
+        x = data[[x_name]],
+        y = data[[y_name]]
     )
     n <- unname(with(df0, tapply(y, x, "length")))
-    bool_out <- length(unique(n)) > 1
-    return(bool_out)
+    res <- length(unique(n)) > 1
+    return(res)
 }
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -69,7 +81,6 @@ estimate_letter_pos <- function(x){
     letter_pos <- MAX + ((ceiling(max(MAX) * 1.15) - max(MAX)) * 0.43)
     return(letter_pos)
 }
-#< estimate_letter_pos()
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -163,6 +174,5 @@ show_boxplot <- function(
     
     return(p1)
 }
-#< show_boxplot()
 
 

@@ -1,23 +1,27 @@
 # Compact letter display (CLD)
-# Piepho, H.-P. (2004). An Algorithm for a Letter-Based Representation of All-Pairwise Comparisons. 
-# Journal of Computational and Graphical Statistics 13, 456–466. https://doi.org/10.1198/1061860043515.
+
+## Piepho, H.P. (2004). 
+## An Algorithm for a Letter-Based Representation of All-Pairwise Comparisons. 
+## Journal of Computational and Graphical Statistics 13, 456–466. https://doi.org/10.1198/1061860043515.
 
 compact_letter_display <- function(
         groups, 
         means, 
         comparisons, 
         pval,
-        pval_threshold = 0.05,
-        descending = TRUE,  # TRUE: Assign the letter_symbols from the highest to the lowest means values
+        alpha = 0.05,
         comparison_symbol = " |vs| ",
-        letter_symbols = letters
+        letter_symbols = letters,
+        descending = TRUE
 ){
+    if (!isTRUE(descending) & !isFALSE(descending)) descending <- TRUE
+    comparisons <- gsub(pattern = comparison_symbol, replacement = " ", x = comparisons)
     # Separate the comparisons pairs, 
     # exp. c("a |vs| b", "a |vs| c", "c |vs| d") => c("a", "a", "c") and c("b", "c", "d")
-    comparisons <- strsplit(comparisons, comparison_symbol, fixed = TRUE)
-    comparisons <- do.call(rbind.data.frame, comparisons)
-    x1 <- comparisons[, 1, drop = TRUE]
-    x2 <- comparisons[, 2, drop = TRUE]
+    # comparisons <- strsplit(comparisons, comparison_symbol, fixed = TRUE)
+    # comparisons <- do.call(rbind.data.frame, comparisons)
+    # x1 <- comparisons[, 1, drop = TRUE]
+    # x2 <- comparisons[, 2, drop = TRUE]
     
     # Generate a NULL matrix, 
     # the row and col names are sorted by the mean-values of the groups
@@ -31,15 +35,26 @@ compact_letter_display <- function(
     
     # Fill in p-value 
     pval_mat <- null_mat
-    for (i in seq_along(x1)){
-        pval_mat[x1[i], x2[i]] <- pval[i]
+    # for (i in seq_along(x1)){
+    #     pval_mat[x1[i], x2[i]] <- pval[i]
+    # }
+    group_mat <- combn(sorted_groups, 2)
+    for (i in 1:ncol(group_mat)){
+        x1_name <- group_mat[1, i]
+        x2_name <- group_mat[2, i]
+
+        x1_exists_in_comparisons <- grepl(x1_name, comparisons)
+        x2_exists_in_comparisons <- grepl(x2_name, comparisons)
+        ind <- which( x1_exists_in_comparisons & x2_exists_in_comparisons )
+
+        pval_mat[x1_name, x2_name] <- unname(pval[ind])
     }
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Insertion step ====
     # Non-significant comparisons were marked as TRUE,
     # So later, non-significant comparing-pairs will be inserted with same letters.
-    bool_mat <- t(pval_mat >= pval_threshold)
+    bool_mat <- t(pval_mat >= alpha)
     bool_mat[is.na(bool_mat)] <- TRUE
     
     # Absorption index ====
@@ -47,12 +62,12 @@ compact_letter_display <- function(
     is_redundant <- c()
     for (n in 1:(ncol(bool_mat))){
         `mat_n` <- bool_mat[, n]
-        `mat_n-1` <- bool_mat[, 1:(n-1), drop = FALSE]  
+        `mat_1:n-1` <- bool_mat[, 1:(n-1), drop = FALSE]  
         is_redundant <- append(
             is_redundant, 
-            any(apply(`mat_n-1`, 2, function(x) identical(`mat_n`, x)))
+            any(apply(`mat_1:n-1`, 2, function(x) identical(`mat_n`, x)))
         )
-        # Note: When n = 1, the first column of the `mat_n-1` is always identical with the `mat-1`
+        # Note: When n = 1, the first column of the `mat_1:n-1` is always identical with the `mat-1`
         # So, implement a `FALSE` to the first element of the `is_redundant` vector after the loop end
     }
     is_redundant[1] <- FALSE
@@ -79,23 +94,10 @@ compact_letter_display <- function(
     # The matrix will be reduced to a named-vector 
     # after row-wise collapsing the letter-columns
     res <- apply(letter_mat, 1, function(x) paste(x, collapse = ""))
+    res <- res[groups]
     
     return(res)
 }
 
 
 cld <- compact_letter_display
-
-
-
-
-
-
-
-
-
-
-
-
-
-
